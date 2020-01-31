@@ -19,6 +19,8 @@ import URLSearchParams from '@ungap/url-search-params';
  * @param {function} [options.params[].stringToValue] - The inverse of valueToString. Specifies how
  *     to parse the parameter's string value to your desired value type. Defaults to the identity
  *     function (i.e. you get the string as it is).
+ * @param {string} [options.params[].aliasFor] - If set, indicates this parameter aliases another
+ *     parameter.  Refers to a key of `'options.params'`. Default: `undefined`.
  * @param {string} options.initialTruth - If set, indicates whose values to sync to the other,
  *     initially. Can be either `'location'` or `'store'`. If not set, the first of them that
  *     changes will set the other, which is not recommended. Usually you will want to use
@@ -57,12 +59,16 @@ function ReduxQuerySync({
         const locationParams = new URLSearchParams(location.search);
         const queryValues = {}
         Object.keys(params).forEach(param => {
-            const { defaultValue, stringToValue = s => s } = params[param]
+            let { aliasFor, defaultValue, stringToValue = s => s } = params[param]
+            if (aliasFor) {
+                defaultValue = params[aliasFor].defaultValue;
+                stringToValue = params[aliasFor].stringToValue || (s => s);
+            }
             const valueString = locationParams.get(param)
             const value = (valueString === null)
                 ? defaultValue
                 : stringToValue(valueString)
-            queryValues[param] = value
+            queryValues[aliasFor || param] = value
         })
         return queryValues
     }
